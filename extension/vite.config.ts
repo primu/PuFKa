@@ -8,4 +8,7 @@ export default defineConfig({
     react(),
     crx({ manifest }),
   ],
+  build: {
+    modulePreload: false,
+  },
 })
