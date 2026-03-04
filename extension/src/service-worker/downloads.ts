@@ -50,15 +50,15 @@ async function markXmlDownloaded(ksefNumer: string): Promise<void> {
 
 export function initDownloadTracker(): void {
   chrome.downloads.onCreated.addListener(async (item) => {
-    // Scenariusz 1: bezpośredni URL do API KSeF
+    // Scenariusz 1: URL zawiera numer KSeF — oznacz natychmiast
     const urlMatch = item.url.match(KSEF_API_URL_PATTERN)
     if (urlMatch) {
       await markXmlDownloaded(decodeURIComponent(urlMatch[1]))
-      return
+      // Bez return — scenariusz 2 działa równolegle jako weryfikacja przez nazwę pliku
     }
 
-    // Scenariusz 2: blob URL z domeny KSeF — czekaj na finalizację nazwy pliku
-    if (item.url.startsWith('blob:https://ap.ksef.mf.gov.pl/')) {
+    // Scenariusz 2: każde pobieranie z domeny KSeF — sprawdź też przez nazwę pliku
+    if (item.url.includes('ap.ksef.mf.gov.pl')) {
       pendingKsefDownloads.add(item.id)
     }
   })
