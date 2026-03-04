@@ -13,6 +13,32 @@ const SELECTORS = {
 // Atrybut znacznika — zapobiega podwójnemu przetwarzaniu wiersza
 const PROCESSED_ATTR = 'data-pufka-processed'
 
+// Zakładka sprzedażowa (Podmiot1) — pomijamy, interesują nas tylko zakupy i podmiot3
+const EXCLUDED_TAB_ID = 'tab_sale'
+
+/**
+ * Zwraca test-id zakładki, w której znajduje się dany element.
+ * Struktura DOM: app-invoice-list → [role="tabpanel"] → aria-labelledby →
+ *   element z [test-id="tab_sale"|"tab_buy"|"tab_other-entity"]
+ */
+function getTabTestId(el: Element): string | null {
+  const panel = el.closest('[role="tabpanel"]')
+  if (!panel) return null
+  const labelId = panel.getAttribute('aria-labelledby')
+  if (!labelId) return null
+  const label = document.getElementById(labelId)
+  return label?.querySelector('[test-id]')?.getAttribute('test-id') ?? null
+}
+
+function isAllowedTab(el: Element): boolean {
+  const tabId = getTabTestId(el)
+  // Jeśli nie udało się wykryć zakładki — zezwól (bezpieczny fallback)
+  return tabId === null || tabId !== EXCLUDED_TAB_ID
+}
+
+// WeakSet — śledzi które app-invoice-list już obserwujemy (zapobiega podwójnemu observerowi)
+const observedLists = new WeakSet<Element>()
+
 // Aktualne filtry (synchronizowane z side panel przez wiadomości)
 let currentFilter: FilterState = { category: null, paymentStatus: null }
 
@@ -122,20 +148,21 @@ function observeRows(container: Element): void {
   scheduleProcessing()
 }
 
-function waitForInvoiceList(): void {
-  const existing = document.querySelector(SELECTORS.invoiceList)
-  if (existing) {
-    observeRows(existing)
-    return
-  }
-
-  const observer = new MutationObserver(() => {
-    const el = document.querySelector(SELECTORS.invoiceList)
-    if (el) {
-      observer.disconnect()
+function tryObserveAllowedLists(): void {
+  document.querySelectorAll<Element>(SELECTORS.invoiceList).forEach((el) => {
+    if (!observedLists.has(el) && isAllowedTab(el)) {
+      observedLists.add(el)
       observeRows(el)
     }
   })
+}
+
+function waitForInvoiceList(): void {
+  tryObserveAllowedLists()
+
+  // Zostaw observer aktywny — obsługuje przełączanie zakładek
+  // (Angular lazy-renderuje każdą zakładkę przy pierwszym wejściu)
+  const observer = new MutationObserver(tryObserveAllowedLists)
   observer.observe(document.body, { childList: true, subtree: true })
 }
 
