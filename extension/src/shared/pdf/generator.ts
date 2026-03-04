@@ -1,7 +1,18 @@
 import { jsPDF } from 'jspdf'
 import { parseInvoiceXml } from '../xml/parser'
 import { TEMPLATES, LABELS, type TemplateConfig, type Labels } from './templates/config'
+import { DEJAVU_SANS_CONDENSED_REGULAR, DEJAVU_SANS_CONDENSED_BOLD } from './fonts'
 import type { ParsedInvoice } from '../types'
+
+const FONT_NAME = 'DejaVuSansCondensed'
+
+function registerFont(doc: jsPDF): void {
+  doc.addFileToVFS('DejaVuSansCondensed.ttf', DEJAVU_SANS_CONDENSED_REGULAR)
+  doc.addFont('DejaVuSansCondensed.ttf', FONT_NAME, 'normal')
+  doc.addFileToVFS('DejaVuSansCondensed-Bold.ttf', DEJAVU_SANS_CONDENSED_BOLD)
+  doc.addFont('DejaVuSansCondensed-Bold.ttf', FONT_NAME, 'bold')
+  doc.setFont(FONT_NAME, 'normal')
+}
 
 const PAGE_HEIGHT = 297  // A4 mm
 const MARGIN_BOTTOM = 12
@@ -16,6 +27,7 @@ export async function generatePdf(
   const invoice = parseInvoiceXml(xmlRaw, ksefNumer)
   const cfg     = TEMPLATES[templateKey] ?? TEMPLATES['standard-pl']
   const doc     = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+  registerFont(doc)
   const lbl     = LABELS[cfg.language]
 
   renderInvoice(invoice, doc, cfg, lbl)
@@ -101,23 +113,9 @@ function renderInvoice(
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-// TODO: Phase polish — zamień na embedded Roboto/DejaVu font w base64
-function stripDiacritics(str: string): string {
-  return str
-    .replace(/ą/g, 'a').replace(/Ą/g, 'A')
-    .replace(/ć/g, 'c').replace(/Ć/g, 'C')
-    .replace(/ę/g, 'e').replace(/Ę/g, 'E')
-    .replace(/ł/g, 'l').replace(/Ł/g, 'L')
-    .replace(/ń/g, 'n').replace(/Ń/g, 'N')
-    .replace(/ó/g, 'o').replace(/Ó/g, 'O')
-    .replace(/ś/g, 's').replace(/Ś/g, 'S')
-    .replace(/ź/g, 'z').replace(/Ź/g, 'Z')
-    .replace(/ż/g, 'z').replace(/Ż/g, 'Z')
-}
-
-// Skrót: strip diacritics + null-safe
+// Null-safe string helper (unicode font — diacritics preserved natively)
 function sd(str: string | undefined | null): string {
-  return stripDiacritics(str ?? '')
+  return str ?? ''
 }
 
 function ensureSpace(doc: jsPDF, y: number, needed: number): number {
@@ -147,7 +145,7 @@ function text(
 ): number {
   doc.setFontSize(size)
   doc.setTextColor(color)
-  doc.text(stripDiacritics(content), x, y, { align })
+  doc.text(content, x, y, { align })
   return y + size * 0.4  // przybliżony line height w mm
 }
 
@@ -192,9 +190,9 @@ function renderHeader(
 
   doc.setFontSize(cfg.fontSizeTitle)
   doc.setTextColor(cfg.colorTitle)
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT_NAME, 'bold')
   doc.text(sd(`${title}  nr ${inv.invoiceNumber}`), cfg.marginLeft, y)
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT_NAME, 'normal')
 
   // Data wystawienia (prawy górny róg)
   doc.setFontSize(cfg.fontSizeBody)
@@ -263,10 +261,10 @@ function renderParties(
   // Nagłówki kolumn
   doc.setFontSize(cfg.fontSizeSmall)
   doc.setTextColor(cfg.colorMuted)
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT_NAME, 'bold')
   doc.text(lbl.seller, cfg.marginLeft, y)
   doc.text(lbl.buyer, midX + 2, y)
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT_NAME, 'normal')
   y += cfg.fontSizeSmall * 0.5
 
   const renderParty = (party: typeof inv.seller, x: number, maxWidth: number): number => {
@@ -369,7 +367,7 @@ function renderLineItems(
   y = ensureSpace(doc, y, 6)
   doc.setFontSize(cfg.fontSizeMicro)
   doc.setTextColor(cfg.colorMuted)
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT_NAME, 'bold')
 
   let x = ml
   doc.text(lbl.lp,    x, y); x += COL.lp
@@ -383,7 +381,7 @@ function renderLineItems(
   }
   doc.text(lbl.gross, x + COL.gross, y, { align: 'right' })
 
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT_NAME, 'normal')
   y += cfg.fontSizeMicro * 0.4
 
   // Wiersze
@@ -443,9 +441,9 @@ function renderOrder(
 
   doc.setFontSize(cfg.fontSizeSmall)
   doc.setTextColor(cfg.colorMuted)
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT_NAME, 'bold')
   doc.text(sd(`${lbl.order}  (${lbl.orderTotal}: ${fmt(order.totalValue)} ${inv.currency})`), cfg.marginLeft, y)
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT_NAME, 'normal')
   y += cfg.fontSizeSmall * 0.45
 
   for (const line of order.lines) {
@@ -471,9 +469,9 @@ function renderVatSummary(
 
   doc.setFontSize(cfg.fontSizeSmall)
   doc.setTextColor(cfg.colorMuted)
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT_NAME, 'bold')
   doc.text(lbl.vatSummary, cfg.marginLeft, y)
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT_NAME, 'normal')
   y += cfg.fontSizeSmall * 0.45
 
   for (const line of inv.vatSummary) {
@@ -487,10 +485,10 @@ function renderVatSummary(
 
   // Razem brutto
   y = ensureSpace(doc, y, 5)
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT_NAME, 'bold')
   doc.setFontSize(cfg.fontSizeBody)
   doc.text(`${lbl.total}: ${fmt(inv.grossAmount)} ${inv.currency}`, cfg.marginRight - 5, y, { align: 'right' })
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT_NAME, 'normal')
   return y + cfg.fontSizeBody * 0.45
 }
 
@@ -601,9 +599,9 @@ function renderNotes(
   y = ensureSpace(doc, y, 6)
   doc.setFontSize(cfg.fontSizeSmall)
   doc.setTextColor(cfg.colorMuted)
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT_NAME, 'bold')
   doc.text(lbl.notes, cfg.marginLeft, y)
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT_NAME, 'normal')
   y += cfg.fontSizeSmall * 0.4
 
   for (const note of inv.additionalNotes!) {

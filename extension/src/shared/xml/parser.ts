@@ -47,6 +47,10 @@ const xmlParser = new XMLParser({
   attributeNamePrefix: '@_',
   removeNSPrefix: true,            // usuwa prefiksy przestrzeni nazw z tagów
   isArray: (tagName) => ARRAY_TAGS.includes(tagName),
+  // Wyłącz konwersję numeryczną tag values — zapobiega utracie precyzji dla
+  // długich numerów kont bankowych (NrRB) i innych pól tekstowych z cyframi.
+  // Wartości liczbowe są konwertowane przez num()/opt() w momencie użycia.
+  parseTagValue: false,
 })
 
 // ─── Funkcje pomocnicze ───────────────────────────────────────────

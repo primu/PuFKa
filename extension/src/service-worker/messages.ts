@@ -8,6 +8,7 @@ import {
 import { parseInvoiceXml } from '../shared/xml/parser'
 import { classify } from './classifier'
 import { withKeepalive } from './keepalive'
+import { arrayBufferToBase64 } from '../shared/utils/base64'
 import type { Message, Invoice, MessageType, ProgressMessage } from '../shared/types'
 
 export async function handleMessage(msg: Message): Promise<unknown> {
@@ -143,7 +144,7 @@ export async function handleMessage(msg: Message): Promise<unknown> {
 
       // Blob nie może być przesłany przez sendMessage — konwertujemy do base64
       const arrayBuffer = await blob.arrayBuffer()
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+      const base64 = arrayBufferToBase64(arrayBuffer)
       return { base64, filename: `${invoice.invoiceNumber.replace(/\//g, '-')}.pdf` }
     }
 
@@ -166,7 +167,7 @@ export async function handleMessage(msg: Message): Promise<unknown> {
         })
 
         const arrayBuffer = await zip.arrayBuffer()
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+        const base64 = arrayBufferToBase64(arrayBuffer)
         return { base64, filename: 'faktury-pufka.zip' }
       })
     }
@@ -194,7 +195,7 @@ export async function handleMessage(msg: Message): Promise<unknown> {
             const { generatePdf } = await import('../shared/pdf/generator')
             const blob = await generatePdf(inv.xmlRaw, template)
             const ab = await blob.arrayBuffer()
-            entry.pdf = btoa(String.fromCharCode(...new Uint8Array(ab)))
+            entry.pdf = arrayBufferToBase64(ab)
           }
           return entry
         })
