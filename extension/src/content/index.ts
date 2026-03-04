@@ -52,7 +52,11 @@ function scheduleProcessing(): void {
 
 async function processRow(row: HTMLElement): Promise<void> {
   const ksefNumerCell = row.querySelector(SELECTORS.ksefNumberCell)
-  const ksefNumer = ksefNumerCell?.textContent?.trim()
+  // textContent zawiera też tekst przycisków ("Przejdź do podglądu", "Kopiuj numer KSeF", "content_copy")
+  // — wyciągamy tylko sam numer KSeF regexem: NIP(10)-Data(8)-Hex(12)-Check(2)
+  const rawText = ksefNumerCell?.textContent ?? ''
+  const match = rawText.match(/\d{10}-\d{8}-[0-9A-F]{12}-[0-9A-Z]{2}/i)
+  const ksefNumer = match?.[0]
   if (!ksefNumer) return
 
   row.setAttribute(PROCESSED_ATTR, ksefNumer)
