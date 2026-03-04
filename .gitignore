@@ -1,5 +1,51 @@
+# Zależności
 node_modules/
+
+# Build outputs
 dist/
+build/
+extension/dist/
+backend/dist/
+
+# Środowisko
 .env
 .env.local
+.env.*.local
 *.local
+
+# Logi
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Testy
+coverage/
+.nyc_output/
+
+# Klucze i certyfikaty
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Chrome extension — spakowane
+*.crx
+*.zip
+
+# Cache narzędzi
+.turbo/
+.cache/
+.parcel-cache/
