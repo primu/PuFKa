@@ -17,23 +17,24 @@ const PROCESSED_ATTR = 'data-pufka-processed'
 const EXCLUDED_TAB_ID = 'tab_sale'
 
 /**
- * Zwraca test-id zakładki, w której znajduje się dany element.
- * Struktura DOM: app-invoice-list → [role="tabpanel"] → aria-labelledby →
- *   element z [test-id="tab_sale"|"tab_buy"|"tab_other-entity"]
+ * Sprawdza czy wiersz należy do zakładki sprzedażowej (Podmiot1).
+ *
+ * Struktura DOM KSeF:
+ *   app-invoice-list          ← nasz selector (RODZIC tabpaneli!)
+ *     mat-tab-group
+ *       mat-tab-header ([role="tab"] z [test-id="tab_sale|tab_buy|tab_other-entity"])
+ *       mat-tab-body [role="tabpanel"][aria-labelledby="mat-tab-group-0-label-N"]
+ *         tr[mat-row]         ← wiersze WEWNĄTRZ tabpanelu
+ *
+ * closest('[role="tabpanel"]') działa na tr[mat-row], NIE na app-invoice-list.
  */
-function getTabTestId(el: Element): string | null {
-  const panel = el.closest('[role="tabpanel"]')
-  if (!panel) return null
+function isRowInExcludedTab(row: HTMLElement): boolean {
+  const panel = row.closest('[role="tabpanel"]')
+  if (!panel) return false
   const labelId = panel.getAttribute('aria-labelledby')
-  if (!labelId) return null
+  if (!labelId) return false
   const label = document.getElementById(labelId)
-  return label?.querySelector('[test-id]')?.getAttribute('test-id') ?? null
-}
-
-function isAllowedTab(el: Element): boolean {
-  const tabId = getTabTestId(el)
-  // Jeśli nie udało się wykryć zakładki — zezwól (bezpieczny fallback)
-  return tabId === null || tabId !== EXCLUDED_TAB_ID
+  return label?.querySelector(`[test-id="${EXCLUDED_TAB_ID}"]`) !== null
 }
 
 // WeakSet — śledzi które app-invoice-list już obserwujemy (zapobiega podwójnemu observerowi)
@@ -129,7 +130,8 @@ function observeRows(container: Element): void {
         if (
           node instanceof HTMLElement &&
           node.matches(SELECTORS.matRow) &&
-          !node.hasAttribute(PROCESSED_ATTR)
+          !node.hasAttribute(PROCESSED_ATTR) &&
+          !isRowInExcludedTab(node)
         ) {
           pendingRows.push(node)
           hasNewRows = true
@@ -141,16 +143,18 @@ function observeRows(container: Element): void {
 
   observer.observe(container, { childList: true, subtree: true })
 
-  // Przetwórz wiersze już istniejące w DOM
+  // Przetwórz wiersze już istniejące w DOM (tylko z dozwolonych zakładek)
   container.querySelectorAll<HTMLElement>(
     `${SELECTORS.matRow}:not([${PROCESSED_ATTR}])`
-  ).forEach((row) => pendingRows.push(row))
+  ).forEach((row) => {
+    if (!isRowInExcludedTab(row)) pendingRows.push(row)
+  })
   scheduleProcessing()
 }
 
-function tryObserveAllowedLists(): void {
+function tryObserveLists(): void {
   document.querySelectorAll<Element>(SELECTORS.invoiceList).forEach((el) => {
-    if (!observedLists.has(el) && isAllowedTab(el)) {
+    if (!observedLists.has(el)) {
       observedLists.add(el)
       observeRows(el)
     }
@@ -158,11 +162,12 @@ function tryObserveAllowedLists(): void {
 }
 
 function waitForInvoiceList(): void {
-  tryObserveAllowedLists()
+  tryObserveLists()
 
-  // Zostaw observer aktywny — obsługuje przełączanie zakładek
-  // (Angular lazy-renderuje każdą zakładkę przy pierwszym wejściu)
-  const observer = new MutationObserver(tryObserveAllowedLists)
+  // Observer aktywny permanentnie — obsługuje:
+  // 1. Nawigację SPA (Angular router → nowa app-invoice-list)
+  // 2. Przełączanie zakładek (lazy-render przy pierwszym wejściu)
+  const observer = new MutationObserver(tryObserveLists)
   observer.observe(document.body, { childList: true, subtree: true })
 }
 
