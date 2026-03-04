@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "PuFKa — Pulpit Faktur KSeF",
+  "version": "0.1.0",
+  "description": "Zarządzanie fakturami w Aplikacji Podatnika KSeF",
+  "permissions": [
+    "storage",
+    "downloads",
+    "sidePanel",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://ap.ksef.mf.gov.pl/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://ap.ksef.mf.gov.pl/web/*"],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "src/service-worker/index.ts",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "side-panel.html"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
