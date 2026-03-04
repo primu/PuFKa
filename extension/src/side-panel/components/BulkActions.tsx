@@ -31,6 +31,15 @@ export function BulkActions({ selectedKsefNumery, onDone }: Props) {
 
       await chrome.downloads.download({ url, filename: response.filename })
       URL.revokeObjectURL(url)
+
+      // Oznacz pobrane faktury w DB
+      if (format !== 'pdf') {
+        await sendMessage({ type: 'MARK_XML_DOWNLOADED', payload: { ksefNumery: selectedKsefNumery } })
+      }
+      if (format !== 'xml') {
+        await sendMessage({ type: 'MARK_PDF_DOWNLOADED', payload: { ksefNumery: selectedKsefNumery } })
+      }
+
       onDone()
     } catch (err) {
       setError(String(err))

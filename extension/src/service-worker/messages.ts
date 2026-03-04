@@ -73,7 +73,8 @@ export async function handleMessage(msg: Message): Promise<unknown> {
         xmlRaw,
         paymentStatus:         parsed.paymentStatus,
         paymentStatusOverride: false,
-        downloaded:            false,
+        downloadedXml:         false,
+        downloadedPdf:         false,
         category,
         categoryAutoApplied,
         fetchedAt:             Date.now(),
@@ -89,7 +90,8 @@ export async function handleMessage(msg: Message): Promise<unknown> {
           data: {
             paymentStatus: invoice.paymentStatus,
             category:      invoice.category,
-            downloaded:    invoice.downloaded,
+            downloadedXml: invoice.downloadedXml,
+            downloadedPdf: invoice.downloadedPdf,
           },
         },
       })
@@ -211,6 +213,52 @@ export async function handleMessage(msg: Message): Promise<unknown> {
       })
 
       if (!resp.ok) throw new Error(`Email API error: ${resp.status}`)
+      return { ok: true }
+    }
+
+    case 'MARK_XML_DOWNLOADED': {
+      const { ksefNumery } = msg.payload as { ksefNumery: string[] }
+      for (const ksefNumer of ksefNumery) {
+        await db.invoices.update(ksefNumer, { downloadedXml: true })
+        const inv = await db.invoices.get(ksefNumer)
+        if (inv) {
+          notifyTabs({
+            type: 'INVOICE_UPDATED',
+            payload: {
+              ksefNumer,
+              data: {
+                paymentStatus: inv.paymentStatus,
+                category:      inv.category,
+                downloadedXml: inv.downloadedXml,
+                downloadedPdf: inv.downloadedPdf,
+              },
+            },
+          })
+        }
+      }
+      return { ok: true }
+    }
+
+    case 'MARK_PDF_DOWNLOADED': {
+      const { ksefNumery } = msg.payload as { ksefNumery: string[] }
+      for (const ksefNumer of ksefNumery) {
+        await db.invoices.update(ksefNumer, { downloadedPdf: true })
+        const inv = await db.invoices.get(ksefNumer)
+        if (inv) {
+          notifyTabs({
+            type: 'INVOICE_UPDATED',
+            payload: {
+              ksefNumer,
+              data: {
+                paymentStatus: inv.paymentStatus,
+                category:      inv.category,
+                downloadedXml: inv.downloadedXml,
+                downloadedPdf: inv.downloadedPdf,
+              },
+            },
+          })
+        }
+      }
       return { ok: true }
     }
 

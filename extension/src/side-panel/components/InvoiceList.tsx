@@ -131,7 +131,8 @@ function InvoiceRow({ invoice: inv, isSelected, onToggle, onSetCategory, onSetSt
               <option value="goods">Towary</option>
             </select>
             <span style={{ fontSize: 10, color: '#888' }}>{inv.invoiceType}</span>
-            {inv.downloaded && <span style={{ fontSize: 10, color: '#888' }}>↓</span>}
+            {inv.downloadedXml && <span style={{ fontSize: 10, color: '#555' }} title="Pobrano XML">↓XML</span>}
+            {inv.downloadedPdf && <span style={{ fontSize: 10, color: '#4a1772' }} title="Pobrano PDF">↓PDF</span>}
           </div>
         </div>
       </div>

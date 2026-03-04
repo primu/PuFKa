@@ -1,4 +1,5 @@
 import { db } from '../shared/db/schema'
+import type { BadgeData } from '../shared/types'
 
 // Scenariusz 1: KSeF używa bezpośredniego URL API jako download URL
 const KSEF_API_URL_PATTERN =
@@ -12,24 +13,38 @@ const KSEF_FILENAME_PATTERN =
 // Śledź download ID z blob URL KSeF (żeby filtrować onChanged)
 const pendingKsefDownloads = new Set<number>()
 
-async function markDownloaded(ksefNumer: string): Promise<void> {
+function notifyBadgeUpdate(ksefNumer: string, data: BadgeData): void {
+  chrome.tabs.query(
+    { url: 'https://ap.ksef.mf.gov.pl/web/*' },
+    (tabs) => {
+      tabs.forEach((tab) => {
+        if (tab.id) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: 'INVOICE_UPDATED',
+            payload: { ksefNumer, data },
+          }).catch(() => {})
+        }
+      })
+    }
+  )
+}
+
+async function markXmlDownloaded(ksefNumer: string): Promise<void> {
   try {
-    await db.invoices.update(ksefNumer, { downloaded: true })
-    chrome.tabs.query(
-      { url: 'https://ap.ksef.mf.gov.pl/web/*' },
-      (tabs) => {
-        tabs.forEach((tab) => {
-          if (tab.id) {
-            chrome.tabs.sendMessage(tab.id, {
-              type: 'INVOICE_UPDATED',
-              payload: { ksefNumer, data: { downloaded: true } },
-            }).catch(() => {})
-          }
-        })
-      }
-    )
+    await db.invoices.update(ksefNumer, { downloadedXml: true })
+
+    // Czytaj pełny rekord żeby wysłać kompletne BadgeData do content script
+    const invoice = await db.invoices.get(ksefNumer)
+    if (!invoice) return
+
+    notifyBadgeUpdate(ksefNumer, {
+      paymentStatus: invoice.paymentStatus,
+      category:      invoice.category,
+      downloadedXml: invoice.downloadedXml,
+      downloadedPdf: invoice.downloadedPdf,
+    })
   } catch (err) {
-    console.warn('[PuFKa SW] Błąd aktualizacji flagi downloaded:', err)
+    console.warn('[PuFKa SW] Błąd aktualizacji flagi downloadedXml:', err)
   }
 }
 
@@ -38,7 +53,7 @@ export function initDownloadTracker(): void {
     // Scenariusz 1: bezpośredni URL do API KSeF
     const urlMatch = item.url.match(KSEF_API_URL_PATTERN)
     if (urlMatch) {
-      await markDownloaded(decodeURIComponent(urlMatch[1]))
+      await markXmlDownloaded(decodeURIComponent(urlMatch[1]))
       return
     }
 
@@ -51,13 +66,12 @@ export function initDownloadTracker(): void {
   // Gdy nazwa pliku jest znana — wyciągnij numer KSeF
   chrome.downloads.onChanged.addListener(async (delta) => {
     if (!delta.filename?.current) return
-    const isPending = pendingKsefDownloads.has(delta.id)
-    if (!isPending) return
+    if (!pendingKsefDownloads.has(delta.id)) return
 
     pendingKsefDownloads.delete(delta.id)
     const match = delta.filename.current.match(KSEF_FILENAME_PATTERN)
     if (match) {
-      await markDownloaded(match[1])
+      await markXmlDownloaded(match[1])
     }
   })
 }

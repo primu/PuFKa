@@ -1,10 +1,6 @@
-import type { PaymentStatus, Category } from '../shared/types'
+import type { PaymentStatus, Category, BadgeData } from '../shared/types'
 
-export interface BadgeData {
-  paymentStatus: PaymentStatus | null
-  category: Category
-  downloaded: boolean
-}
+export type { BadgeData }
 
 const PAYMENT_LABELS: Record<PaymentStatus, string> = {
   paid:    'Zapłacona',
@@ -74,12 +70,21 @@ function renderBadges(container: HTMLElement, data: BadgeData): void {
     container.appendChild(badge)
   }
 
-  // Badge pobrania
-  if (data.downloaded) {
+  // Badge pobrania XML
+  if (data.downloadedXml) {
     const badge = document.createElement('span')
-    badge.className = 'pufka-badge pufka-badge--dl'
-    badge.textContent = '↓'
-    badge.title = 'Pobrana przez użytkownika'
+    badge.className = 'pufka-badge pufka-badge--dl-xml'
+    badge.textContent = '↓XML'
+    badge.title = 'Pobrana jako XML'
+    container.appendChild(badge)
+  }
+
+  // Badge pobrania PDF
+  if (data.downloadedPdf) {
+    const badge = document.createElement('span')
+    badge.className = 'pufka-badge pufka-badge--dl-pdf'
+    badge.textContent = '↓PDF'
+    badge.title = 'Pobrana jako PDF'
     container.appendChild(badge)
   }
 }

@@ -53,7 +53,8 @@ const fetcher = new XmlFetcher((ksefNumer, xmlRaw) => {
       updateBadge(ksefNumer, {
         paymentStatus: invoice.paymentStatus,
         category: invoice.category,
-        downloaded: invoice.downloaded,
+        downloadedXml: invoice.downloadedXml,
+        downloadedPdf: invoice.downloadedPdf,
       })
       applyRowFilter(ksefNumer, invoice, currentFilter)
     }
@@ -102,7 +103,8 @@ async function processRow(row: HTMLElement): Promise<void> {
     updateBadge(ksefNumer, {
       paymentStatus: invoice.paymentStatus,
       category: invoice.category,
-      downloaded: invoice.downloaded,
+      downloadedXml: invoice.downloadedXml,
+      downloadedPdf: invoice.downloadedPdf,
     })
     applyRowFilter(ksefNumer, invoice, currentFilter)
   } else {
@@ -212,7 +214,8 @@ function injectStyles(): void {
     .pufka-badge--unknown { background: #e2e3e5; color: #383d41; }
     .pufka-badge--costs   { background: #cce5ff; color: #004085; }
     .pufka-badge--goods   { background: #fff3cd; color: #856404; }
-    .pufka-badge--dl      { background: #d6d8d9; color: #1b1e21; }
+    .pufka-badge--dl-xml  { background: #d6d8d9; color: #1b1e21; }
+    .pufka-badge--dl-pdf  { background: #e2d9f3; color: #4a1772; }
     .pufka-badge--loading { background: #e2e3e5; color: #6c757d; }
   `
   document.head.appendChild(style)

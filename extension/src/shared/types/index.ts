@@ -31,8 +31,9 @@ export interface Invoice {
   paymentStatus: PaymentStatus
   paymentStatusOverride: boolean  // true = ustawiony ręcznie przez użytkownika
 
-  // znacznik pobrania
-  downloaded: boolean
+  // znaczniki pobrania (osobno dla XML i PDF)
+  downloadedXml: boolean
+  downloadedPdf: boolean
 
   // klasyfikacja
   category: Category
@@ -262,6 +263,15 @@ export interface Annotations {
   vatExemption?: string          // P_19A (podstawa zwolnienia)
 }
 
+// ─── Dane badge'a (używane przez content script i service worker) ─
+
+export interface BadgeData {
+  paymentStatus: PaymentStatus | null
+  category: Category
+  downloadedXml: boolean
+  downloadedPdf: boolean
+}
+
 // ─── Filtrowanie ──────────────────────────────────────────────────
 
 export interface FilterState {
@@ -282,6 +292,8 @@ export type MessageType =
   | 'GENERATE_PDF'
   | 'GENERATE_ZIP'
   | 'SEND_EMAIL'
+  | 'MARK_XML_DOWNLOADED'
+  | 'MARK_PDF_DOWNLOADED'
   | 'PROGRESS'
   | 'INVOICE_UPDATED'
 
